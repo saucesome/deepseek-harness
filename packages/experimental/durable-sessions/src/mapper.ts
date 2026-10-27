@@ -16,6 +16,7 @@
 
 import type { SessionEvent } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-user-approval'
+import { gateCommandHash } from './gate.ts'
 import { redactSecrets, type RedactOptions } from './redact.ts'
 import {
   boundRow,
@@ -240,11 +241,13 @@ export class DurableEventMapper {
         const pending = callId === undefined ? undefined : this.#calls.get(String(callId))
         const gate: PendingGate = { tool: event.data.toolName, cmd: pending?.shellCommand ?? '' }
         this.#gates.set(String(event.data.id), gate)
+        const shown = redactSecrets(gate.cmd, this.#redact)
         return boundRow({
-          ...this.#envelope({ who: 'gate', said: gateSentence(gate.tool, gate.cmd), at: event.time, beat: 'ask' }),
+          ...this.#envelope({ who: 'gate', said: gateSentence(gate.tool, shown), at: event.time, beat: 'ask' }),
           ev: 'gate',
           tool: gate.tool,
-          cmd: gate.cmd,
+          cmd: shown,
+          commandHash: gateCommandHash(shown),
           decision: null,
         })
       }
@@ -255,6 +258,7 @@ export class DurableEventMapper {
         // unavailable ask never reached a person, so it publishes no decision row.
         if (event.data.outcome !== 'allowed-once' && event.data.outcome !== 'rejected') return null
         const decision = event.data.outcome === 'allowed-once' ? 'allow-once' : 'deny'
+        const shown = redactSecrets(gate?.cmd ?? '', this.#redact)
         return boundRow({
           ...this.#envelope({
             who: 'gate',
@@ -264,7 +268,8 @@ export class DurableEventMapper {
           }),
           ev: 'gate',
           tool: gate?.tool ?? 'unknown',
-          cmd: gate?.cmd ?? '',
+          cmd: shown,
+          commandHash: gateCommandHash(shown),
           decision,
         })
       }

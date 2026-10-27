@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createAssistantMessage, createUserMessage, ToolCallId } from '@deepseek-ai/dsh-llm'
 import { SessionSeq, type SessionEvent } from '@deepseek-ai/dsh-session'
+import { gateCommandHash } from '../src/gate.ts'
 import { DurableEventMapper, type MapperScope } from '../src/mapper.ts'
 
 const NOW = Date.UTC(2026, 9, 27, 12, 0, 0)
@@ -126,9 +127,9 @@ describe('DurableEventMapper gate rows', () => {
   it('asks with the shell command the call carried', () => {
     const subject = mapper()
     subject.mapEvent(bashCall('call-5', 'rm -rf build'))
-    expect(subject.mapEvent(asked('call-5'))).toMatchObject({
-      ev: 'gate', tool: 'bash', cmd: 'rm -rf build', decision: null, beat: 'ask', who: 'gate',
-    })
+    const row = subject.mapEvent(asked('call-5'))
+    expect(row).toMatchObject({ ev: 'gate', tool: 'bash', cmd: 'rm -rf build', decision: null, beat: 'ask', who: 'gate' })
+    expect(row).toHaveProperty('commandHash', expect.stringMatching(/^[0-9a-f]{64}$/))
   })
 
   it('asks without a command for a tool that carries none', () => {
@@ -141,6 +142,14 @@ describe('DurableEventMapper gate rows', () => {
     subject.mapEvent(bashCall('call-6', 'make'))
     subject.mapEvent(asked('call-6'))
     expect(subject.mapEvent(decided('allowed-once'))).toMatchObject({ decision: 'allow-once', cmd: 'make', said: 'Allowed once.' })
+  })
+
+  it('hashes the redacted command, not the raw one, so the card and the hash agree', () => {
+    const subject = mapper({ DSH_DEPLOY_TOKEN: 'super-secret-token-value' })
+    subject.mapEvent(bashCall('call-7', 'deploy --token super-secret-token-value'))
+    const asked_ = subject.mapEvent(asked('call-7'))
+    expect(asked_).toMatchObject({ cmd: 'deploy --token [redacted]' })
+    expect(asked_).toMatchObject({ commandHash: gateCommandHash('deploy --token [redacted]') })
   })
 
   it('records a rejection', () => {

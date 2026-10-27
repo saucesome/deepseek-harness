@@ -22,8 +22,14 @@ export const MAX_CMD_CHARS = 2000
 export const MAX_TOOL_NAME_CHARS = 64
 /** Most reference ids retained in one row. */
 export const MAX_REFS = 16
-/** Longest phone message accepted from the tail. */
-export const MAX_INPUT_CHARS = 100_000
+/** Longest session title the store accepts. */
+export const MAX_TITLE_CHARS = 200
+/** Longest phone message accepted from the tail, in UTF-8 bytes (the store's body cap). */
+export const MAX_INPUT_BYTES = 64 * 1024
+/** Most rows one publish call may carry. */
+export const MAX_BATCH_EVENTS = 50
+/** Longest publish call body, in UTF-8 bytes. */
+export const MAX_BATCH_BYTES = 256 * 1024
 /** A request id the store accepts: 8 to 80 of these characters. */
 export const REQUEST_ID_RE = /^[A-Za-z0-9_.-]{8,80}$/
 
@@ -90,6 +96,8 @@ export interface GateRow extends EnvelopeFields {
   ev: 'gate'
   tool: string
   cmd: string
+  /** {@link gateCommandHash} of {@link cmd} after redaction; the store refuses an empty value. */
+  commandHash: string
   /** `null` while the question is open. */
   decision: 'allow-once' | 'deny' | null
 }
@@ -174,7 +182,7 @@ export function boundRow<T extends PublishedRow>(row: T): T {
       bounded.cmd = truncate(bounded.cmd, MAX_CMD_CHARS)
       break
     case 'session_start':
-      bounded.title = truncate(bounded.title, MAX_SAID_CHARS)
+      bounded.title = truncate(bounded.title, MAX_TITLE_CHARS)
       bounded.host = truncate(bounded.host, MAX_TOOL_NAME_CHARS)
       bounded.cwd = truncate(bounded.cwd, MAX_CMD_CHARS)
       break
@@ -204,7 +212,8 @@ export function parseInboundRow(raw: unknown): InboundRow | null {
   const sender = typeof raw.sender === 'string' && raw.sender.length > 0 ? raw.sender : undefined
   switch (raw.type) {
     case 'input': {
-      if (typeof raw.text !== 'string' || raw.text.length === 0 || raw.text.length > MAX_INPUT_CHARS) return null
+      if (typeof raw.text !== 'string' || raw.text.length === 0) return null
+      if (Buffer.byteLength(raw.text, 'utf8') > MAX_INPUT_BYTES) return null
       return { type: 'input', seq: raw.seq, requestId: raw.requestId, text: raw.text, ...sender === undefined ? {} : { sender } }
     }
     case 'answer': {

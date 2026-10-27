@@ -13,10 +13,13 @@
 
 export {
   boundRow,
+  MAX_BATCH_BYTES,
+  MAX_BATCH_EVENTS,
   MAX_CMD_CHARS,
-  MAX_INPUT_CHARS,
+  MAX_INPUT_BYTES,
   MAX_REFS,
   MAX_SAID_CHARS,
+  MAX_TITLE_CHARS,
   MAX_TOOL_NAME_CHARS,
   parseInboundRow,
   REQUEST_ID_RE,
@@ -35,5 +38,6 @@ export {
   type ToolRow,
   type TurnStartRow,
 } from './wire.ts'
+export { answerMatchesGate, gateCommandHash } from './gate.ts'
 export { REDACTED, redactSecrets, SECRET_ENV_NAME_RE, SECRET_VALUE_PATTERNS, secretValues, type RedactOptions } from './redact.ts'
 export { DurableEventMapper, type MapperOptions, type MapperScope } from './mapper.ts'

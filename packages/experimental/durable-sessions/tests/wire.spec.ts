@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
   boundRow,
+  MAX_INPUT_BYTES,
   MAX_CMD_CHARS,
   MAX_REFS,
   MAX_SAID_CHARS,
+  MAX_TITLE_CHARS,
   MAX_TOOL_NAME_CHARS,
   parseInboundRow,
   type ToolRow,
@@ -43,10 +45,10 @@ describe('boundRow', () => {
   })
 
   it('clamps a gate command and a session title', () => {
-    const gate = boundRow({ ...base, ev: 'gate', tool: 'bash', cmd: 'c'.repeat(MAX_CMD_CHARS + 1), decision: null })
+    const gate = boundRow({ ...base, ev: 'gate', tool: 'bash', cmd: 'c'.repeat(MAX_CMD_CHARS + 1), commandHash: 'abc', decision: null })
     expect(gate.cmd.length).toBe(MAX_CMD_CHARS + 1)
-    const start = boundRow({ ...base, ev: 'session_start', title: 't'.repeat(MAX_SAID_CHARS + 1), host: 'gogeta', cwd: '/tmp' })
-    expect(start.title.length).toBe(MAX_SAID_CHARS + 1)
+    const start = boundRow({ ...base, ev: 'session_start', title: 't'.repeat(MAX_TITLE_CHARS + 1), host: 'gogeta', cwd: '/tmp' })
+    expect(start.title.length).toBe(MAX_TITLE_CHARS + 1)
     expect(start.host).toBe('gogeta')
   })
 
@@ -81,7 +83,15 @@ describe('parseInboundRow', () => {
     expect(parseInboundRow(raw)).toBeNull()
   })
 
-  it('rejects text above the input limit', () => {
-    expect(parseInboundRow({ type: 'input', seq: 1, requestId, text: 'x'.repeat(100_001) })).toBeNull()
+  it('accepts a message at the byte cap and refuses one byte more', () => {
+    const atCap = 'x'.repeat(MAX_INPUT_BYTES)
+    expect(parseInboundRow({ type: 'input', seq: 1, requestId, text: atCap })).not.toBeNull()
+    expect(parseInboundRow({ type: 'input', seq: 1, requestId, text: `${atCap}x` })).toBeNull()
+  })
+
+  it('measures the cap in bytes, so multibyte text is refused before it fills the cap', () => {
+    const multibyte = 'é'.repeat(MAX_INPUT_BYTES / 2 + 1)
+    expect(multibyte.length).toBeLessThanOrEqual(MAX_INPUT_BYTES)
+    expect(parseInboundRow({ type: 'input', seq: 1, requestId, text: multibyte })).toBeNull()
   })
 })

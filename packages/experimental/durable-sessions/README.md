@@ -37,6 +37,18 @@ All four need the eLicorice sign-in core to mint a token. That core is importabl
 - Pass keychain names as a hex digest of the normalized service URL, never free text. The macOS store builds an unquoted `security -i` stdin line from them, so free text can inject arguments; the digest also matches the store naming the design already requires.
 
 
+## Backend contract the transport must respect
+
+The hardened eLicorice backend (contract as of 2026-10-27; not deployed yet) fixes these, and the transport half must not drift from them. The bounds in `wire.ts` are these numbers.
+
+- Sign in as the person. A machine or service token is refused on every dsh door with 403 `not_a_person`; the device sign-in comes from the keychain, never from a service secret.
+- A `dsh` token exchange needs a verified second factor. The accepted methods come from the token service's configuration, and a missing list refuses everything rather than allowing a password; `dsh login` shows "sign in again with your second factor".
+- Every gate row carries a non-empty `commandHash` and every answer must repeat it, or the store refuses the answer with 400. The hash covers the command as the card showed it, after redaction — see `gate.ts`.
+- Bodies: phone-side messages, answers and session-create calls at most 64 KB; publish batches at most 50 rows and 256 KB; session titles at most 200 characters; device labels are length-capped.
+- The envelope wins: a published payload cannot rewrite its own `turn` or `seq`. Publishing needs the `publish` scope plus the host's own session id.
+- A gate answer is written first and the decision made in one step. An answer arriving after the 120-second `unavailable` timeout gets 409 `expired`, and the second of two answers gets 409. Both mean the gate is already closed; never retry them.
+- A session reads as "not running" after 45 seconds without a heartbeat, so the 15-second heartbeat has three chances inside one window.
+
 ## Known wire-shape gaps
 
 Two shapes in the design spec disagree with the durable store's published schema: the spec's `who: 'human' | 'agent'` against the schema's `you | assistant | system`, and the spec listing `ev` as an envelope field where the schema makes it a per-variant constant. This package follows the schema; both divergences are raised on the tracking ticket rather than guessed around.
