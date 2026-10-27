@@ -29,7 +29,13 @@ Every value of every environment variable would redact `PATH`, `HOME` and the re
 - The approval answerer on `approval/request`.
 - Keep-awake for the live run.
 
-All four need the eLicorice sign-in core to mint a token. That core lives in the private CandyCode repository and cannot be imported by this public one yet, so the transport half lands when it can be.
+All four need the eLicorice sign-in core to mint a token. That core is importable now — CandyCode's `./signin` graph reaches only `src/login/**`, `ajv`, `ajv-formats` and `undici` as of `d0d0a0b`, guarded by that repository's `test/signin-self-contained.test.ts` — but it is a private repository, so this public package cannot depend on it. The transport half is written in the out-of-tree package named above.
+
+## Handoff notes for the out-of-tree package
+
+- Pin `candycode` at `d0d0a0b` (it contains `eb78eb8`: the `./signin` and `./runs` exports and the required keychain names). The exported names did not change from `eb78eb8`.
+- Pass keychain names as a hex digest of the normalized service URL, never free text. The macOS store builds an unquoted `security -i` stdin line from them, so free text can inject arguments; the digest also matches the store naming the design already requires.
+
 
 ## Known wire-shape gaps
 
