@@ -17033,6 +17033,21 @@ importers:
         specifier: workspace:*
         version: link:../../typert/protocol
 
+  packages/experimental/durable-sessions:
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: workspace:~
+        version: link:../../../vendor/cordis
+      '@deepseek-ai/dsh-llm':
+        specifier: workspace:*
+        version: link:../../llm/llm
+      '@deepseek-ai/dsh-session':
+        specifier: workspace:*
+        version: link:../../core/session
+      '@deepseek-ai/dsh-user-approval':
+        specifier: workspace:*
+        version: link:../../interaction/user-approval
+
   python/sdk-runtime:
     dependencies:
       '@deepseek-ai/cordis':

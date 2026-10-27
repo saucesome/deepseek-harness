@@ -62,7 +62,11 @@ export function experimentalPackageRecordNamespace(name: string): string | undef
 }
 
 /** Experimental packages excluded from public releases and npm baselines. */
-export const PRIVATE_EXPERIMENTAL_PACKAGE_DIRECTORIES: readonly string[] = []
+export const PRIVATE_EXPERIMENTAL_PACKAGE_DIRECTORIES: readonly string[] = [
+  // Installed into one owner's profiles and configured with that owner's eLicorice host;
+  // publishing it would ship a private integration as part of the dsh release family.
+  'packages/experimental/durable-sessions',
+]
 
 /**
  * Whether an experimental package publishes under the default-public policy.
