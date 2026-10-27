@@ -4,6 +4,10 @@ The dsh host side of [eLicorice durable sessions](../../../docs/): what the run 
 
 This build carries the safety-critical half — the row vocabulary and its bounds, the redaction pass, and the allowlist mapper. The transport half (publish with heartbeat, one log tail, phone approvals, keep-awake) is not built yet; see [Not built yet](#not-built-yet).
 
+## This copy is a holding place
+
+The plugin's home is the eLicorice monorepo at `packages/dsh-harness-sessions`, published as `@elicorice/dsh-harness-sessions` and installed into one owner's profiles. It carries a private brand while dsh is public, so it does not join the dsh release family. This package is where the code was written and is reviewed; it moves when that package exists, and it is not the plugin's final home.
+
 ## What it owns
 
 - **The row vocabulary** (`wire.ts`): the durable store's envelope fields, one `ev` variant per row kind, fixed per-field bounds, and validators for the two rows the phone may send (`input`, `answer`).
